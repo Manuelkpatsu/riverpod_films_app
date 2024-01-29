@@ -101,7 +101,7 @@ const allFilms = [
     isFavorite: false,
   ),
   Film(
-    id: 5,
+    id: 6,
     title: 'Freelance',
     description: 'Description for Freelance',
     image:
@@ -145,6 +145,137 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(title: const Text('Films')),
+      body: Column(
+        children: [
+          const FilterWidget(),
+          Consumer(
+            builder: (context, ref, child) {
+              final filter = ref.watch(favoriteStatusProvider);
+
+              switch (filter) {
+                case FavoriteStatus.all:
+                  return FilmsList(provider: allFilmsProvider);
+                case FavoriteStatus.favorite:
+                  return FilmsList(provider: favoriteFilmsProvider);
+                case FavoriteStatus.notFavorite:
+                  return FilmsList(provider: notFavoriteFilmsProvider);
+              }
+            },
+          )
+        ],
+      ),
     );
+  }
+}
+
+class FilmsList extends ConsumerWidget {
+  final AlwaysAliveProviderBase<Iterable<Film>> provider;
+
+  const FilmsList({required this.provider, super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final films = ref.watch(provider);
+
+    return Expanded(
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: films.length,
+        separatorBuilder: (ctx, index) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          final film = films.elementAt(index);
+
+          return Row(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    fit: BoxFit.cover,
+                    image: NetworkImage(film.image),
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      film.title,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(film.description),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              IconButton(
+                onPressed: () {
+                  ref.read(allFilmsProvider.notifier).update(
+                        film: film,
+                        isFavorite: !film.isFavorite,
+                      );
+                },
+                splashRadius: 20,
+                icon: Icon(film.isFavorite ? Icons.favorite : Icons.favorite_border),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class FilterWidget extends StatelessWidget {
+  const FilterWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer(
+      builder: (context, ref, child) {
+        return DropdownButton(
+          value: ref.watch(favoriteStatusProvider),
+          items: FavoriteStatus.values
+              .map((status) => DropdownMenuItem(
+                    value: status,
+                    child: FavoriteStatusText(favoriteStatus: status),
+                  ))
+              .toList(),
+          onChanged: (status) {
+            ref.read(favoriteStatusProvider.notifier).state = status!;
+          },
+        );
+      },
+    );
+  }
+}
+
+class FavoriteStatusText extends StatelessWidget {
+  final FavoriteStatus favoriteStatus;
+
+  const FavoriteStatusText({
+    Key? key,
+    required this.favoriteStatus,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    String favoriteStatusText() {
+      switch (favoriteStatus) {
+        case FavoriteStatus.all:
+          return 'All';
+        case FavoriteStatus.favorite:
+          return 'Favorite';
+        case FavoriteStatus.notFavorite:
+          return 'Not Favorite';
+      }
+    }
+
+    return Text(favoriteStatusText());
   }
 }
