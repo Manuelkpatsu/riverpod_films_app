@@ -110,6 +110,34 @@ const allFilms = [
   ),
 ];
 
+class FilmsNotifier extends StateNotifier<List<Film>> {
+  FilmsNotifier() : super(allFilms);
+
+  void update({required Film film, required bool isFavorite}) {
+    state = state
+        .map(
+            (thisFilm) => thisFilm.id == film.id ? thisFilm.copy(isFavorite: isFavorite) : thisFilm)
+        .toList();
+  }
+}
+
+enum FavoriteStatus { all, favorite, notFavorite }
+
+final favoriteStatusProvider = StateProvider<FavoriteStatus>((_) => FavoriteStatus.all);
+
+// All films
+final allFilmsProvider = StateNotifierProvider<FilmsNotifier, List<Film>>((_) => FilmsNotifier());
+
+// Favorite films
+final favoriteFilmsProvider = Provider<Iterable<Film>>(
+  (ref) => ref.watch(allFilmsProvider).where((film) => film.isFavorite),
+);
+
+// Not Favorite films
+final notFavoriteFilmsProvider = Provider<Iterable<Film>>(
+  (ref) => ref.watch(allFilmsProvider).where((film) => !film.isFavorite),
+);
+
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
